@@ -1,15 +1,15 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AnswerModule } from './answer/answer.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
-import { QuestionModule } from './question/question.module';
-import { UserModule } from './user/user.module';
-import { LectureModule } from './lecture/lecture.module';
 import { ImageModule } from './image/image.module';
-import { AnswerModule } from './answer/answer.module';
+import { LectureModule } from './lecture/lecture.module';
+import { QuestionModule } from './question/question.module';
 import { UserProgresModule } from './user-progres/user-progres.module';
+import { UserModule } from './user/user.module';
 
 @Module({
   imports: [

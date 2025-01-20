@@ -9,7 +9,7 @@ import { Lecture } from '../../lecture/entities/lecture.entity';
 
 @Entity('images')
 export class Image {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn({ name: 'image_id' })
   id: string;
 
   @ManyToOne(() => Lecture, (lecture) => lecture.images, {
@@ -18,10 +18,10 @@ export class Image {
   lecture: Lecture;
 
   @Column()
-  file_path: string; // Путь к файлу на сервере
+  file_path: string;
 
   @Column({ nullable: true })
-  alt_text: string; // Альтернативный текст (опционально)
+  alt_text: string;
 
   @CreateDateColumn()
   created_at: Date;

@@ -3,7 +3,7 @@ import { Question } from '../../question/entities/question.entity';
 
 @Entity('answers')
 export class Answer {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn({ name: 'answer_id' })
   id: string;
 
   @Column('text')
@@ -12,6 +12,9 @@ export class Answer {
   @Column('boolean')
   is_correct: boolean;
 
-  @ManyToOne(() => Question, (question) => question.answers)
+  @ManyToOne(() => Question, (question) => question.answers, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   question: Question;
 }
