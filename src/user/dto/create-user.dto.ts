@@ -1,4 +1,4 @@
-import { IsString } from 'class-validator';
+import { IsString, MinLength } from 'class-validator';
 
 export class CreateUserDto {
   @IsString()
@@ -8,6 +8,7 @@ export class CreateUserDto {
   lastName: string;
 
   @IsString()
+  @MinLength(5, { message: 'login must be more then 5 symbols' })
   login: string;
 
   @IsString()

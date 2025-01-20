@@ -1,26 +1,54 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import * as argon2 from 'argon2';
+import * as crypto from 'crypto';
+import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { User } from './entities/user.entity';
 
 @Injectable()
 export class UserService {
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
+  constructor(
+    @InjectRepository(User) private readonly userRepository: Repository<User>,
+  ) {}
+
+  async create(createUserDto: CreateUserDto) {
+    const existUser = await this.userRepository.findOne({
+      where: {
+        login: createUserDto.login,
+      },
+    });
+    if (existUser)
+      throw new BadRequestException('User by this login is already exist!');
+
+    const plainPassword = crypto
+      .randomBytes(10)
+      .toString('base64')
+      .slice(0, 10);
+
+    const password = await argon2.hash(plainPassword);
+
+    const user = await this.userRepository.save({
+      ...createUserDto,
+      password,
+    });
+
+    return { user, plainPassword };
   }
 
-  findAll() {
-    return `This action returns all user`;
-  }
+  //   findAll() {
+  //     return `This action returns all user`;
+  //   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
-  }
+  //   findOne(id: number) {
+  //     return `This action returns a #${id} user`;
+  //   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
-  }
+  //   update(id: number, updateUserDto: UpdateUserDto) {
+  //     return `This action updates a #${id} user`;
+  //   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
-  }
+  //   remove(id: number) {
+  //     return `This action removes a #${id} user`;
+  //   }
 }
