@@ -33,7 +33,18 @@ export class UserService {
       password,
     });
 
-    return { user, plainPassword };
+    return {
+      message: 'User successfully created',
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        login: user.login,
+        role: user.role,
+        city: user.city,
+      },
+      plainPassword,
+    };
   }
 
   //   findAll() {
