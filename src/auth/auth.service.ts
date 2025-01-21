@@ -1,26 +1,36 @@
-import { Injectable } from '@nestjs/common';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import * as argon2 from 'argon2';
+import { UserService } from 'src/user/user.service';
 
 @Injectable()
 export class AuthService {
-  create(createAuthDto: CreateAuthDto) {
-    return 'This action adds a new auth';
-  }
+  constructor(private readonly userService: UserService) {}
 
-  findAll() {
-    return `This action returns all auth`;
-  }
+  async validateUser(login: string, password: string) {
+    const user = await this.userService.findOne(login);
+    if (!user) throw new NotFoundException('User bu this login is not found');
 
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
-  }
+    const passwordIsMatch = await argon2.verify(user.password, password);
 
-  update(id: number, updateAuthDto: UpdateAuthDto) {
-    return `This action updates a #${id} auth`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
+    if (!passwordIsMatch)
+      throw new BadRequestException('Password is incorrect');
+    if (user && passwordIsMatch) {
+      return {
+        message: 'Login successful',
+        user: {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          login: user.login,
+          role: user.role,
+          city: user.city,
+        },
+      };
+    }
+    return null;
   }
 }

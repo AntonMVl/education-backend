@@ -47,6 +47,9 @@ export class UserService {
     };
   }
 
+  async findOne(login: string): Promise<User | undefined> {
+    return await this.userRepository.findOne({ where: { login } });
+  }
   //   findAll() {
   //     return `This action returns all user`;
   //   }
