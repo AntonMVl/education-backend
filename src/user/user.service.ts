@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as argon2 from 'argon2';
 import * as crypto from 'crypto';
@@ -10,6 +11,7 @@ import { User } from './entities/user.entity';
 export class UserService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
+    private readonly jwtService: JwtService,
   ) {}
 
   async create(createUserDto: CreateUserDto) {
@@ -33,6 +35,8 @@ export class UserService {
       password,
     });
 
+    const token = this.jwtService.sign({ login: createUserDto.login });
+
     return {
       message: 'User successfully created',
       user: {
@@ -44,6 +48,7 @@ export class UserService {
         city: user.city,
       },
       plainPassword,
+      token,
     };
   }
 
