@@ -24,33 +24,22 @@ export class AuthService {
     if (!passwordIsMatch)
       throw new UnauthorizedException('Password is incorrect');
     if (user && passwordIsMatch) {
-      return {
-        message: 'Login successful',
-        user: {
-          id: user.id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          login: user.login,
-          role: user.role,
-          city: user.city,
-        },
-      };
+      return user;
     }
     return null;
   }
 
   async login(user: IUser) {
-    const { id, login } = user;
+    const { password, createdAt, ...safeUser } = user;
     return {
-      id,
-      login,
+      user: safeUser,
       token: this.jwtService.sign({
         id: user.id,
         login: user.login,
-        // firstName: user.firstName,
-        // lastName: user.lastName,
-        // city: user.city,
-        // role: user.role,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        city: user.city,
+        role: user.role,
       }),
     };
   }

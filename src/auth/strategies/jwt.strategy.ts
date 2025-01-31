@@ -18,10 +18,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     return {
       id: user.id,
       login: user.login,
-      //   firstName: user.firstName,
-      //   lastName: user.lastName,
-      //   city: user.city,
-      //   role: user.role,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      city: user.city,
+      role: user.role,
     };
   }
 }
