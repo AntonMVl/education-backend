@@ -55,6 +55,22 @@ export class UserService {
   async findOne(login: string): Promise<User | undefined> {
     return await this.userRepository.findOne({ where: { login } });
   }
+
+  async updateProfile(id: number | string, updateUserDto: Partial<User>) {
+    const user = await this.userRepository.findOne({
+      where: { id: Number(id) },
+    });
+    if (!user) throw new BadRequestException('User not found');
+
+    if (updateUserDto.password) {
+      updateUserDto.password = await argon2.hash(updateUserDto.password);
+    }
+
+    Object.assign(user, updateUserDto);
+    await this.userRepository.save(user);
+    return user;
+  }
+
   //   findAll() {
   //     return `This action returns all user`;
   //   }

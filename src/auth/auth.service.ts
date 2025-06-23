@@ -6,6 +6,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import { IUser } from 'src/types/types';
+import { User } from 'src/user/entities/user.entity';
 import { UserService } from 'src/user/user.service';
 
 @Injectable()
@@ -41,6 +42,29 @@ export class AuthService {
         city: user.city,
         role: user.role,
       }),
+    };
+  }
+
+  async updateProfile(user: IUser, updateUserDto: Partial<User>) {
+    const updatedUser = await this.userService.updateProfile(
+      Number(user.id),
+      updateUserDto,
+    );
+    const { password, ...safeUser } = updatedUser;
+
+    // Генерируем новый токен с обновлёнными данными
+    const newToken = this.jwtService.sign({
+      id: updatedUser.id,
+      login: updatedUser.login,
+      firstName: updatedUser.firstName,
+      lastName: updatedUser.lastName,
+      city: updatedUser.city,
+      role: updatedUser.role,
+    });
+
+    return {
+      user: safeUser,
+      token: newToken,
     };
   }
 }
