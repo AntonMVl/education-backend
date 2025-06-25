@@ -2,6 +2,8 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
@@ -30,4 +32,11 @@ export class User {
 
   @CreateDateColumn()
   createdAt: Date;
+
+  @Column({ nullable: true })
+  createdBy: number;
+
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'createdBy' })
+  creator: User;
 }

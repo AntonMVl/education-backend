@@ -20,10 +20,30 @@ export class AdminService {
 
   async findAllUsers(): Promise<User[]> {
     const users = await this.userRepository.find({
-      order: { id: 'ASC' },
+      relations: ['creator'],
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        login: true,
+        role: true,
+        city: true,
+        createdAt: true,
+        createdBy: true,
+        creator: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          login: true,
+        },
+      },
+      order: {
+        role: 'ASC',
+        id: 'ASC',
+      },
     });
 
-    // Возвращаем пользователей без паролей
+    // Убираем пароли из результата
     return users.map((user) => {
       const { password, ...result } = user;
       return result as User;
@@ -33,6 +53,23 @@ export class AdminService {
   async findOneUser(id: number): Promise<User> {
     const user = await this.userRepository.findOne({
       where: { id },
+      relations: ['creator'],
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        login: true,
+        role: true,
+        city: true,
+        createdAt: true,
+        createdBy: true,
+        creator: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          login: true,
+        },
+      },
     });
     if (!user) {
       throw new NotFoundException('Пользователь не найден');
@@ -45,6 +82,7 @@ export class AdminService {
 
   async createUser(
     createUserDto: CreateUserDto,
+    currentUserId: number,
   ): Promise<{ user: User; plainPassword: string }> {
     const { login, firstName, lastName, role, city } = createUserDto;
 
@@ -76,6 +114,7 @@ export class AdminService {
       lastName,
       role,
       city,
+      createdBy: currentUserId,
     });
 
     const savedUser = await this.userRepository.save(user);

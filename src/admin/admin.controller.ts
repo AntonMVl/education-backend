@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Request,
   UseGuards,
   UsePipes,
@@ -32,8 +33,9 @@ export class AdminController {
   @Post('users')
   @Roles('admin', 'superadmin')
   @UsePipes(new ValidationPipe())
-  createUser(@Body() createUserDto: CreateUserDto) {
-    return this.adminService.createUser(createUserDto);
+  createUser(@Body() createUserDto: CreateUserDto, @Request() req: any) {
+    const currentUserId = req.user.id;
+    return this.adminService.createUser(createUserDto, currentUserId);
   }
 
   @Get('users/:id')
@@ -42,7 +44,7 @@ export class AdminController {
     return this.adminService.findOneUser(+id);
   }
 
-  @Patch('users/:id')
+  @Put('users/:id')
   @Roles('admin', 'superadmin')
   @UsePipes(new ValidationPipe())
   updateUser(
