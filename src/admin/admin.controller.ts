@@ -4,74 +4,109 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
-  Put,
   Request,
   UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
+import { Permission } from '../enums/permissions.enum';
 import { CreateUserDto } from '../user/dto/create-user.dto';
 import { UpdateUserDto } from '../user/dto/update-user.dto';
 import { AdminService } from './admin.service';
+import { UpdateAdminPermissionsDto } from './dto/update-admin-permissions.dto';
 
 @Controller('admin')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
+  @Get('stats')
+  getStats() {
+    return this.adminService.getStats();
+  }
+
   @Get('users')
-  @Roles('admin', 'superadmin')
   findAllUsers() {
     return this.adminService.findAllUsers();
   }
 
-  @Post('users')
-  @Roles('admin', 'superadmin')
-  @UsePipes(new ValidationPipe())
-  createUser(@Body() createUserDto: CreateUserDto, @Request() req: any) {
-    const currentUserId = req.user.id;
-    return this.adminService.createUser(createUserDto, currentUserId);
-  }
-
   @Get('users/:id')
-  @Roles('admin', 'superadmin')
-  findOneUser(@Param('id') id: string) {
-    return this.adminService.findOneUser(+id);
+  findOneUser(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.findOneUser(id);
   }
 
-  @Put('users/:id')
-  @Roles('admin', 'superadmin')
+  @Post('users')
+  @UsePipes(new ValidationPipe())
+  createUser(@Body() createUserDto: CreateUserDto, @Request() req) {
+    return this.adminService.createUser(createUserDto, req.user.id);
+  }
+
+  @Patch('users/:id')
   @UsePipes(new ValidationPipe())
   updateUser(
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
-    @Request() req: any,
+    @Request() req,
   ) {
-    const currentUserId = req.user.id;
-    return this.adminService.updateUser(+id, updateUserDto, currentUserId);
+    return this.adminService.updateUser(id, updateUserDto, req.user.id);
   }
 
   @Delete('users/:id')
-  @Roles('admin', 'superadmin')
-  removeUser(@Param('id') id: string, @Request() req: any) {
-    const currentUserId = req.user.id;
-    return this.adminService.removeUser(+id, currentUserId);
+  removeUser(@Param('id', ParseIntPipe) id: number, @Request() req) {
+    return this.adminService.removeUser(id, req.user.id);
   }
 
   @Patch('users/:id/status')
-  @Roles('admin', 'superadmin')
-  toggleUserStatus(@Param('id') id: string, @Body() body: { status: string }) {
-    return this.adminService.toggleUserStatus(+id, body.status);
+  toggleUserStatus(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.toggleUserStatus(id);
   }
 
-  @Get('stats')
-  @Roles('admin', 'superadmin')
-  getStats() {
-    return this.adminService.getStats();
+  // Новые эндпоинты для работы с администраторами
+  @Get('admins')
+  getAllAdmins() {
+    return this.adminService.getAllAdmins();
+  }
+
+  @Get('admins/:id/permissions')
+  getAdminPermissions(@Param('id', ParseIntPipe) adminId: number) {
+    return this.adminService.getAdminPermissions(adminId);
+  }
+
+  @Patch('admins/:id/permissions')
+  updateAdminPermissions(
+    @Param('id', ParseIntPipe) adminId: number,
+    @Body() updateDto: UpdateAdminPermissionsDto,
+    @Request() req,
+  ) {
+    return this.adminService.updateAdminPermissions(
+      adminId,
+      updateDto,
+      req.user.id,
+    );
+  }
+
+  @Get('permissions/check/:permission')
+  async checkPermission(
+    @Param('permission') permission: string,
+    @Request() req,
+  ) {
+    // Проверяем, что permission является валидным значением enum
+    if (!Object.values(Permission).includes(permission as Permission)) {
+      return { hasPermission: false };
+    }
+    const hasPermission = await this.adminService.checkPermission(
+      req.user.id,
+      permission as Permission,
+    );
+    return { hasPermission };
+  }
+
+  @Get('permissions/my')
+  async getMyPermissions(@Request() req) {
+    return this.adminService.getUserPermissions(req.user.id);
   }
 }

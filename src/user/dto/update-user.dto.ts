@@ -1,12 +1,20 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { IsIn, IsOptional, IsString, MinLength } from 'class-validator';
-import { CreateUserDto } from './create-user.dto';
+import {
+  IsArray,
+  IsIn,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
+import { Permission } from '../../enums/permissions.enum';
 
-export class UpdateUserDto extends PartialType(CreateUserDto) {
+export class UpdateUserDto {
   @IsOptional()
   @IsString()
-  @MinLength(6, { message: 'password must be more then 6 symbols' })
-  password?: string;
+  firstName?: string;
+
+  @IsOptional()
+  @IsString()
+  lastName?: string;
 
   @IsOptional()
   @IsString()
@@ -19,4 +27,17 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
     message: 'Role must be one of: user, admin, superadmin',
   })
   role?: string;
+
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(6, { message: 'password must be more then 6 symbols' })
+  password?: string;
+
+  @IsOptional()
+  @IsArray()
+  permissions?: Permission[];
 }

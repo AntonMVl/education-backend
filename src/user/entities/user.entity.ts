@@ -6,6 +6,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { Permission } from '../../enums/permissions.enum';
 
 @Entity()
 export class User {
@@ -39,4 +40,7 @@ export class User {
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'createdBy' })
   creator: User;
+
+  @Column('simple-array', { nullable: true })
+  permissions: Permission[];
 }
