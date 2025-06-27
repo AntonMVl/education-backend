@@ -317,8 +317,9 @@ export class AdminService {
   }
 
   async getAllAdmins() {
+    console.log('getAllAdmins called');
     const admins = await this.userRepository.find({
-      where: { role: Role.ADMIN },
+      where: [{ role: Role.ADMIN }, { role: Role.SUPERADMIN }],
       relations: ['creator'],
       select: {
         id: true,
@@ -329,6 +330,7 @@ export class AdminService {
         city: true,
         createdAt: true,
         createdBy: true,
+        permissions: true,
         creator: {
           id: true,
           firstName: true,
@@ -337,16 +339,57 @@ export class AdminService {
         },
       },
       order: {
+        role: 'ASC',
         id: 'ASC',
       },
     });
 
-    // Убираем пароли из результата
-    return admins.map((admin) => {
+    console.log('Raw admins from DB:', admins);
+
+    // Преобразуем данные в формат AdminWithPermissions
+    const result = admins.map((admin) => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { password: _, ...result } = admin;
-      return result as User;
+      const { password: _, ...adminData } = admin;
+
+      // Для суперадминов добавляем все разрешения
+      let permissions;
+      if (admin.role === Role.SUPERADMIN) {
+        permissions = Object.values(Permission).map((permission) => ({
+          permission,
+          displayName: PermissionDisplayNames[permission],
+          grantedAt: admin.createdAt,
+          grantedBy: admin.creator
+            ? {
+                id: admin.creator.id,
+                firstName: admin.creator.firstName,
+                lastName: admin.creator.lastName,
+              }
+            : null,
+        }));
+      } else {
+        // Для обычных админов используем их разрешения
+        permissions = (admin.permissions || []).map((permission) => ({
+          permission,
+          displayName: PermissionDisplayNames[permission],
+          grantedAt: admin.createdAt,
+          grantedBy: admin.creator
+            ? {
+                id: admin.creator.id,
+                firstName: admin.creator.firstName,
+                lastName: admin.creator.lastName,
+              }
+            : null,
+        }));
+      }
+
+      return {
+        ...adminData,
+        permissions,
+      };
     });
+
+    console.log('Processed admins result:', result);
+    return result;
   }
 
   async getAdminPermissions(adminId: number) {
