@@ -37,7 +37,7 @@ export class User {
   @Column({ nullable: true })
   createdBy: number;
 
-  @ManyToOne(() => User, { nullable: true })
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'createdBy' })
   creator: User;
 

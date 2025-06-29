@@ -202,31 +202,53 @@ export class AdminService {
     if (currentUser.role === Role.SUPERADMIN) {
       // Суперадмин может обновлять любых пользователей
     } else if (currentUser.role === Role.ADMIN) {
-      // Админ не может изменять свои права
-      if (userToUpdate.id === currentUser.id && updateUserDto.permissions) {
-        throw new ForbiddenException('Вы не можете изменять свои права');
-      }
+      // Админ может редактировать свои данные независимо от прав
+      if (userToUpdate.id === currentUser.id) {
+        // Админ не может изменять свои права
+        if (updateUserDto.permissions) {
+          throw new ForbiddenException('Вы не можете изменять свои права');
+        }
+        // Админ не может изменять свою роль
+        if (updateUserDto.role) {
+          throw new ForbiddenException('Вы не можете изменять свою роль');
+        }
+      } else {
+        // Если редактируем другого пользователя, проверяем права
+        if (userToUpdate.role === Role.ADMIN) {
+          // Если обновляем админа, проверяем право MANAGE_ADMINS
+          if (!this.hasPermission(currentUser, Permission.MANAGE_ADMINS)) {
+            throw new ForbiddenException(
+              'У вас нет прав на редактирование администраторов',
+            );
+          }
+        } else if (userToUpdate.role === Role.USER) {
+          // Если обновляем обычного пользователя, проверяем право EDIT_USERS
+          if (!this.hasPermission(currentUser, Permission.EDIT_USERS)) {
+            throw new ForbiddenException(
+              'У вас нет прав на редактирование пользователей',
+            );
+          }
+        }
 
-      if (userToUpdate.role === Role.ADMIN) {
-        // Если обновляем админа, проверяем право MANAGE_ADMINS
-        if (!this.hasPermission(currentUser, Permission.MANAGE_ADMINS)) {
+        // Проверяем, не пытается ли админ изменить роль на суперадмин
+        if (updateUserDto.role === Role.SUPERADMIN) {
           throw new ForbiddenException(
-            'У вас нет прав на редактирование администраторов',
+            'Администраторы не могут назначать роль суперадминистратора',
           );
         }
-      } else if (userToUpdate.role === Role.USER) {
-        // Если обновляем обычного пользователя, проверяем право EDIT_USERS
-        if (!this.hasPermission(currentUser, Permission.EDIT_USERS)) {
-          throw new ForbiddenException(
-            'У вас нет прав на редактирование пользователей',
-          );
-        }
       }
-
-      // Проверяем, не пытается ли админ изменить роль на суперадмин
-      if (updateUserDto.role === Role.SUPERADMIN) {
+    } else if (currentUser.role === Role.USER) {
+      // Обычный пользователь может редактировать только свои данные
+      if (userToUpdate.id !== currentUser.id) {
         throw new ForbiddenException(
-          'Администраторы не могут назначать роль суперадминистратора',
+          'У вас нет прав на редактирование других пользователей',
+        );
+      }
+
+      // Пользователь не может изменять свою роль или права
+      if (updateUserDto.role || updateUserDto.permissions) {
+        throw new ForbiddenException(
+          'Вы не можете изменять свою роль или права',
         );
       }
     } else {
@@ -237,8 +259,13 @@ export class AdminService {
 
     // Очищаем объект от undefined значений
     const cleanUpdateData = Object.fromEntries(
-      Object.entries(updateUserDto).filter(([_, value]) => value !== undefined),
+      Object.entries(updateUserDto).filter(([, value]) => value !== undefined),
     );
+
+    // Хешируем пароль, если он предоставлен
+    if (cleanUpdateData.password) {
+      cleanUpdateData.password = await argon2.hash(cleanUpdateData.password);
+    }
 
     await this.userRepository.update(id, cleanUpdateData);
     return this.findOneUser(id);
@@ -292,6 +319,14 @@ export class AdminService {
       throw new ForbiddenException('У вас нет прав на удаление пользователей');
     }
 
+    // Перед удалением пользователя обновляем все записи, которые ссылаются на него
+    // Устанавливаем createdBy в null для всех пользователей, созданных удаляемым пользователем
+    await this.userRepository.update(
+      { createdBy: userToDelete.id },
+      { createdBy: null },
+    );
+
+    // Теперь можно безопасно удалить пользователя
     await this.userRepository.remove(userToDelete);
   }
 
@@ -603,7 +638,7 @@ export class AdminService {
 
   // Метод для автоматического предоставления прав на управление пользователями
   // при предоставлении права на управление админами
-  async grantAdminManagementPermissions(userId: number, currentUser: User) {
+  async grantAdminManagementPermissions(userId: number) {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new BadRequestException('Пользователь не найден');

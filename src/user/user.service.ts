@@ -71,6 +71,39 @@ export class UserService {
     return user;
   }
 
+  async resetPassword(id: number) {
+    const user = await this.userRepository.findOne({
+      where: { id },
+    });
+    if (!user) throw new BadRequestException('User not found');
+
+    // Генерируем новый пароль
+    const plainPassword = crypto
+      .randomBytes(10)
+      .toString('base64')
+      .slice(0, 10);
+
+    // Хешируем пароль
+    const hashedPassword = await argon2.hash(plainPassword);
+
+    // Обновляем пароль в базе данных
+    user.password = hashedPassword;
+    await this.userRepository.save(user);
+
+    return {
+      message: 'Password successfully reset',
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        login: user.login,
+        role: user.role,
+        city: user.city,
+      },
+      plainPassword,
+    };
+  }
+
   //   findAll() {
   //     return `This action returns all user`;
   //   }
