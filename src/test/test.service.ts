@@ -55,8 +55,13 @@ export class TestService {
     const totalQuestions = answers.length;
 
     for (const answer of answers) {
+      const questionId = parseInt(answer.questionId, 10);
+      if (isNaN(questionId)) {
+        continue;
+      }
+
       const question = await this.questionRepository.findOne({
-        where: { id: answer.questionId },
+        where: { id: questionId },
         relations: ['answers'],
       });
 
@@ -64,8 +69,13 @@ export class TestService {
         continue;
       }
 
+      const answerId = parseInt(answer.answerId, 10);
+      if (isNaN(answerId)) {
+        continue;
+      }
+
       const selectedAnswer = question.answers.find(
-        (a) => a.id === answer.answerId,
+        (a) => a.id === answerId,
       );
       if (selectedAnswer && selectedAnswer.is_correct) {
         correctAnswers++;

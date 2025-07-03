@@ -1,13 +1,13 @@
-import { IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class CreateLectureDto {
   @IsString()
   @IsNotEmpty()
   title: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  content: string;
+  content?: string;
 
   @IsUUID()
   @IsNotEmpty()
@@ -16,6 +16,10 @@ export class CreateLectureDto {
   @IsOptional()
   @IsString()
   pdf_file?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  has_test?: boolean;
 
   @IsOptional()
   images?: string[];

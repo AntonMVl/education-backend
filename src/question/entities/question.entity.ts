@@ -11,7 +11,7 @@ import { Lecture } from '../../lecture/entities/lecture.entity';
 @Entity('questions')
 export class Question {
   @PrimaryGeneratedColumn({ name: 'question_id' })
-  id: string;
+  id: number;
 
   @Column('text')
   text: string;

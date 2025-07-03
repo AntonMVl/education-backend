@@ -4,7 +4,7 @@ import { Question } from '../../question/entities/question.entity';
 @Entity('answers')
 export class Answer {
   @PrimaryGeneratedColumn({ name: 'answer_id' })
-  id: string;
+  id: number;
 
   @Column('text')
   text: string;

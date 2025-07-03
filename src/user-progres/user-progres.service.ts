@@ -20,22 +20,15 @@ export class UserProgresService {
   ) {}
 
   async getAvailableCourses(userId: number): Promise<any[]> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException(`Пользователь с ID ${userId} не найден`);
-    }
-
     const allCourses = await this.courseRepository.find({
       relations: ['lectures'],
-      order: { order_number: 'ASC' },
     });
-
     const userProgress = await this.userProgressRepository.find({
       where: { user: { id: userId } },
-      relations: ['course', 'lecture'],
+      relations: ['course'],
     });
 
-    const availableCourses = [];
+    const availableCourses: any[] = [];
     let previousCourseCompleted = true;
 
     for (const course of allCourses) {
@@ -45,7 +38,7 @@ export class UserProgresService {
       const completedLectures = courseProgress.filter(
         (p) => p.completed,
       ).length;
-      const totalLectures = course.lectures.length;
+      const totalLectures = course.lectures?.length || 0;
       const courseCompleted =
         totalLectures > 0 && completedLectures === totalLectures;
 
@@ -90,13 +83,25 @@ export class UserProgresService {
       relations: ['lecture'],
     });
 
+    // Добавляем информацию о завершении к каждой лекции
+    const lecturesWithProgress = (course.lectures || []).map(lecture => {
+      const progress = userProgress.find(p => p.lecture?.id === lecture.id);
+      return {
+        ...lecture,
+        completed: progress ? progress.completed : false,
+      };
+    });
+
     const completedLectures = userProgress.filter((p) => p.completed).length;
-    const totalLectures = course.lectures.length;
+    const totalLectures = course.lectures?.length || 0;
     const progress =
       totalLectures > 0 ? (completedLectures / totalLectures) * 100 : 0;
 
     return {
-      course,
+      course: {
+        ...course,
+        lectures: lecturesWithProgress,
+      },
       progress,
       completedLectures,
       totalLectures,
@@ -105,7 +110,9 @@ export class UserProgresService {
   }
 
   async getOverallProgress(userId: number): Promise<number> {
-    const allCourses = await this.courseRepository.find();
+    const allCourses = await this.courseRepository.find({
+      relations: ['lectures'],
+    });
     const userProgress = await this.userProgressRepository.find({
       where: { user: { id: userId } },
       relations: ['course'],
@@ -119,7 +126,7 @@ export class UserProgresService {
       const completedLectures = courseProgress.filter(
         (p) => p.completed,
       ).length;
-      const totalLectures = course.lectures.length;
+      const totalLectures = course.lectures?.length || 0;
 
       if (totalLectures > 0 && completedLectures === totalLectures) {
         completedCourses++;
@@ -174,14 +181,14 @@ export class UserProgresService {
   async isLectureAvailable(
     userId: number,
     lectureId: string,
-  ): Promise<boolean> {
+  ): Promise<{ isAvailable: boolean; message?: string }> {
     const lecture = await this.lectureRepository.findOne({
       where: { id: lectureId },
       relations: ['course'],
     });
 
     if (!lecture) {
-      return false;
+      return { isAvailable: false, message: 'Лекция не найдена' };
     }
 
     // Проверяем, доступен ли курс
@@ -191,7 +198,10 @@ export class UserProgresService {
     )?.isAvailable;
 
     if (!courseAvailable) {
-      return false;
+      return { 
+        isAvailable: false, 
+        message: 'Курс недоступен. Сначала завершите предыдущие курсы.' 
+      };
     }
 
     // Проверяем, завершены ли предыдущие лекции
@@ -205,7 +215,7 @@ export class UserProgresService {
     );
 
     if (currentLectureIndex === 0) {
-      return true; // Первая лекция всегда доступна
+      return { isAvailable: true }; // Первая лекция всегда доступна
     }
 
     // Проверяем завершение предыдущих лекций
@@ -219,10 +229,13 @@ export class UserProgresService {
       });
 
       if (!progress || !progress.completed) {
-        return false;
+        return { 
+          isAvailable: false, 
+          message: 'Сначала завершите предыдущие лекции в этом курсе.' 
+        };
       }
     }
 
-    return true;
+    return { isAvailable: true };
   }
 }

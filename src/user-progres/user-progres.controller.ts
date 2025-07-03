@@ -27,7 +27,8 @@ export class UserProgresController {
 
   @Get('overall')
   async getOverallProgress(@Request() req) {
-    return this.userProgresService.getOverallProgress(req.user.id);
+    const progress = await this.userProgresService.getOverallProgress(req.user.id);
+    return { progress };
   }
 
   @Post('lecture/:lectureId/complete')

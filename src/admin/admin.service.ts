@@ -13,6 +13,7 @@ import { Role } from '../enums/roles.enum';
 import { CreateUserDto } from '../user/dto/create-user.dto';
 import { UpdateUserDto } from '../user/dto/update-user.dto';
 import { User } from '../user/entities/user.entity';
+import { UserProgresService } from '../user-progres/user-progres.service';
 import { UpdateAdminPermissionsDto } from './dto/update-admin-permissions.dto';
 import { AdminPermission } from './entities/admin-permission.entity';
 
@@ -23,6 +24,7 @@ export class AdminService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(AdminPermission)
     private readonly adminPermissionRepository: Repository<AdminPermission>,
+    private readonly userProgresService: UserProgresService,
   ) {}
 
   async findAllUsers(): Promise<User[]> {
@@ -50,12 +52,26 @@ export class AdminService {
       },
     });
 
-    // Убираем пароли из результата
-    return users.map((user) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { password: _, ...result } = user;
-      return result as User;
-    });
+    // Добавляем прогресс для пользователей с ролью USER
+    const usersWithProgress = await Promise.all(
+      users.map(async (user) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { password: _, ...result } = user;
+        
+        if (user.role === Role.USER) {
+          try {
+            const progress = await this.userProgresService.getOverallProgress(user.id);
+            return { ...result, overallProgress: progress } as User & { overallProgress: number };
+          } catch (error) {
+            return { ...result, overallProgress: 0 } as User & { overallProgress: number };
+          }
+        }
+        
+        return result as User;
+      })
+    );
+
+    return usersWithProgress;
   }
 
   async findOneUser(id: number): Promise<User> {
@@ -666,5 +682,19 @@ export class AdminService {
       permissions: uniquePermissions,
     });
     return this.userRepository.findOne({ where: { id: userId } });
+  }
+
+  async getUserProgress(userId: number): Promise<number> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('Пользователь не найден');
+    }
+
+    // Если пользователь не является обычным пользователем, возвращаем 0
+    if (user.role !== Role.USER) {
+      return 0;
+    }
+
+    return this.userProgresService.getOverallProgress(userId);
   }
 }

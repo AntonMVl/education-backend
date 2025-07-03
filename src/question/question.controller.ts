@@ -54,6 +54,7 @@ export class QuestionController {
   @Delete(':id')
   @Roles(Role.ADMIN, Role.SUPERADMIN)
   remove(@Param('id') id: string) {
+    console.log(`DELETE запрос для вопроса с ID: ${id}, тип: ${typeof id}`)
     return this.questionService.remove(id);
   }
 }

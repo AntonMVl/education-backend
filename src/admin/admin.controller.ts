@@ -109,4 +109,10 @@ export class AdminController {
   async getMyPermissions(@Request() req) {
     return this.adminService.getUserPermissions(req.user.id);
   }
+
+  @Get('users/:id/progress')
+  async getUserProgress(@Param('id', ParseIntPipe) userId: number) {
+    const progress = await this.adminService.getUserProgress(userId);
+    return { progress };
+  }
 }

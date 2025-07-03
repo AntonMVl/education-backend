@@ -33,6 +33,7 @@ export class LectureService {
       title: createLectureDto.title,
       content: createLectureDto.content,
       pdf_file: createLectureDto.pdf_file,
+      has_test: createLectureDto.has_test || false,
       course,
     });
 
@@ -97,6 +98,10 @@ export class LectureService {
 
     if (updateLectureDto.pdf_file) {
       lecture.pdf_file = updateLectureDto.pdf_file;
+    }
+
+    if (updateLectureDto.has_test !== undefined) {
+      lecture.has_test = updateLectureDto.has_test;
     }
 
     return this.lectureRepository.save(lecture);
