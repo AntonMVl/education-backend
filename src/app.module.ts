@@ -6,9 +6,11 @@ import { AnswerModule } from './answer/answer.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
+import { CourseModule } from './course/course.module';
 import { ImageModule } from './image/image.module';
 import { LectureModule } from './lecture/lecture.module';
 import { QuestionModule } from './question/question.module';
+import { TestModule } from './test/test.module';
 import { UserProgresModule } from './user-progres/user-progres.module';
 import { UserModule } from './user/user.module';
 
@@ -18,6 +20,8 @@ import { UserModule } from './user/user.module';
     QuestionModule,
     AuthModule,
     AdminModule,
+    CourseModule,
+    TestModule,
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],

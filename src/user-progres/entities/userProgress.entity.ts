@@ -1,15 +1,21 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Course } from '../../course/entities/course.entity';
+import { Lecture } from '../../lecture/entities/lecture.entity';
+import { User } from '../../user/entities/user.entity';
 
 @Entity('user_progress')
 export class UserProgress {
   @PrimaryGeneratedColumn({ name: 'userProgress_id' })
   id: string;
 
-  @Column()
-  user_id: string;
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  user: User;
 
-  @Column()
-  lecture_id: string;
+  @ManyToOne(() => Course, { onDelete: 'CASCADE', nullable: true })
+  course: Course;
+
+  @ManyToOne(() => Lecture, { onDelete: 'CASCADE', nullable: true })
+  lecture: Lecture;
 
   @Column('boolean')
   completed: boolean;

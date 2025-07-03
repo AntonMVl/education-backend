@@ -5,6 +5,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { Course } from '../../course/entities/course.entity';
 import { Lecture } from '../../lecture/entities/lecture.entity';
 
 @Entity('images')
@@ -14,8 +15,15 @@ export class Image {
 
   @ManyToOne(() => Lecture, (lecture) => lecture.images, {
     onDelete: 'CASCADE',
+    nullable: true,
   })
   lecture: Lecture;
+
+  @ManyToOne(() => Course, (course) => course.images, {
+    onDelete: 'CASCADE',
+    nullable: true,
+  })
+  course: Course;
 
   @Column()
   file_path: string;
