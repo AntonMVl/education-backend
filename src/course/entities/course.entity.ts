@@ -23,6 +23,9 @@ export class Course {
   @Column('int')
   order_number: number;
 
+  @Column({ nullable: true })
+  cover_image: string;
+
   @OneToMany(() => Image, (image) => image.course)
   images: Image[];
 

@@ -130,4 +130,11 @@ export class LectureController {
     const imagePath = `/uploads/lectures/${file.filename}`;
     return this.lectureService.addImage(id, imagePath, altText);
   }
+
+  @Post('cleanup/files')
+  @Roles(Role.SUPERADMIN)
+  async cleanupOrphanedFiles() {
+    await this.lectureService.cleanupOrphanedFiles();
+    return { message: 'Очистка неиспользуемых файлов завершена' };
+  }
 }

@@ -9,8 +9,12 @@ import {
   UploadedFile,
   UseGuards,
   UseInterceptors,
+  BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { v4 as uuidv4 } from 'uuid';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -50,6 +54,48 @@ export class CourseController {
   @Roles(Role.ADMIN, Role.SUPERADMIN)
   remove(@Param('id') id: string) {
     return this.courseService.remove(id);
+  }
+
+  @Post(':id/cover')
+  @Roles(Role.ADMIN, Role.SUPERADMIN)
+  @UseInterceptors(
+    FileInterceptor('cover', {
+      storage: diskStorage({
+        destination: './uploads/courses',
+        filename: (req, file, cb) => {
+          const uniqueName = uuidv4();
+          const extension = extname(file.originalname);
+          cb(null, `${uniqueName}${extension}`);
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+          cb(null, true);
+        } else {
+          cb(new BadRequestException('Только изображения разрешены'), false);
+        }
+      },
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB
+      },
+    }),
+  )
+  async addCover(
+    @Param('id') id: string,
+    @UploadedFile() file: any,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Файл обложки не был загружен');
+    }
+    
+    const coverPath = `/uploads/courses/${file.filename}`;
+    return this.courseService.addCover(id, coverPath);
+  }
+
+  @Delete(':id/cover')
+  @Roles(Role.ADMIN, Role.SUPERADMIN)
+  async removeCover(@Param('id') id: string) {
+    return this.courseService.removeCover(id);
   }
 
   @Post(':id/image')

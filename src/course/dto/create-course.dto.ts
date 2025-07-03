@@ -12,4 +12,8 @@ export class CreateCourseDto {
   @IsNotEmpty()
   @IsNumber()
   order_number: number;
+
+  @IsOptional()
+  @IsString()
+  cover_image?: string;
 }

@@ -1,8 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as fs from 'fs';
+import * as path from 'path';
+import { Answer } from '../answer/entities/answer.entity';
 import { Course } from '../course/entities/course.entity';
 import { Image } from '../image/entities/image.entity';
+import { Question } from '../question/entities/question.entity';
 import { CreateLectureDto } from './dto/create-lecture.dto';
 import { UpdateLectureDto } from './dto/update-lecture.dto';
 import { Lecture } from './entities/lecture.entity';
@@ -16,6 +20,10 @@ export class LectureService {
     private courseRepository: Repository<Course>,
     @InjectRepository(Image)
     private imageRepository: Repository<Image>,
+    @InjectRepository(Question)
+    private questionRepository: Repository<Question>,
+    @InjectRepository(Answer)
+    private answerRepository: Repository<Answer>,
   ) {}
 
   async create(createLectureDto: CreateLectureDto): Promise<Lecture> {
@@ -109,6 +117,58 @@ export class LectureService {
 
   async remove(id: string): Promise<void> {
     const lecture = await this.findOne(id);
+    
+    // Получаем все вопросы лекции
+    const questions = await this.questionRepository.find({
+      where: { lecture: { id } },
+      relations: ['answers'],
+    });
+    
+    // Удаляем все ответы для каждого вопроса
+    for (const question of questions) {
+      await this.answerRepository.delete({ question: { id: question.id } });
+    }
+    
+    // Удаляем все вопросы лекции
+    await this.questionRepository.delete({ lecture: { id } });
+    
+    // Получаем и удаляем все изображения лекции
+    const images = await this.imageRepository.find({
+      where: { lecture: { id } },
+    });
+    
+    // Удаляем физические файлы изображений
+    for (const image of images) {
+      try {
+        const imagePath = path.join(process.cwd(), 'uploads', 'lectures', path.basename(image.file_path));
+        if (fs.existsSync(imagePath)) {
+          fs.unlinkSync(imagePath);
+          console.log(`Изображение удалено: ${imagePath}`);
+        }
+      } catch (error) {
+        console.error('Ошибка при удалении изображения:', error);
+        // Не прерываем удаление лекции, если не удалось удалить файл
+      }
+    }
+    
+    // Удаляем записи изображений из базы данных
+    await this.imageRepository.delete({ lecture: { id } });
+    
+    // Удаляем PDF файл, если он существует
+    if (lecture.pdf_file) {
+      try {
+        const pdfPath = path.join(process.cwd(), 'uploads', 'lectures', path.basename(lecture.pdf_file));
+        if (fs.existsSync(pdfPath)) {
+          fs.unlinkSync(pdfPath);
+          console.log(`PDF файл удален: ${pdfPath}`);
+        }
+      } catch (error) {
+        console.error('Ошибка при удалении PDF файла:', error);
+        // Не прерываем удаление лекции, если не удалось удалить файл
+      }
+    }
+    
+    // Наконец удаляем саму лекцию
     await this.lectureRepository.remove(lecture);
   }
 
@@ -134,5 +194,52 @@ export class LectureService {
     await this.imageRepository.save(image);
 
     return this.findOne(id);
+  }
+
+  // Вспомогательный метод для очистки неиспользуемых файлов
+  async cleanupOrphanedFiles(): Promise<void> {
+    try {
+      const uploadsDir = path.join(process.cwd(), 'uploads', 'lectures');
+      if (!fs.existsSync(uploadsDir)) {
+        return;
+      }
+
+      const files = fs.readdirSync(uploadsDir);
+      
+      // Получаем все используемые файлы из базы данных
+      const [lectures, images] = await Promise.all([
+        this.lectureRepository.find({ select: ['pdf_file'] }),
+        this.imageRepository.find({ select: ['file_path'] }),
+      ]);
+
+      const usedFiles = new Set<string>();
+      
+      // Добавляем PDF файлы
+      lectures.forEach(lecture => {
+        if (lecture.pdf_file) {
+          usedFiles.add(path.basename(lecture.pdf_file));
+        }
+      });
+      
+      // Добавляем изображения
+      images.forEach(image => {
+        usedFiles.add(path.basename(image.file_path));
+      });
+
+      // Удаляем неиспользуемые файлы
+      for (const file of files) {
+        if (!usedFiles.has(file)) {
+          const filePath = path.join(uploadsDir, file);
+          try {
+            fs.unlinkSync(filePath);
+            console.log(`Удален неиспользуемый файл: ${file}`);
+          } catch (error) {
+            console.error(`Ошибка при удалении файла ${file}:`, error);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Ошибка при очистке файлов:', error);
+    }
   }
 }
